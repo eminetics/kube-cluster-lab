@@ -1,0 +1,78 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "ubuntu/focal64"
+  config.vm.box_check_update = false
+
+  # --- 1. DISK SIZE (40GB) ---
+  # IMPORTANT: Run 'vagrant plugin install vagrant-disksize' on your laptop first.
+  if Vagrant.has_plugin?("vagrant-disksize")
+    config.disksize.size = '40GB'
+  else
+    puts "NOTE: vagrant-disksize plugin not found. Disks will stay at default size."
+  end
+
+  # --- 2. GLOBAL VIRTUALBOX SETTINGS ---
+  # These settings apply to ALL nodes defined below.
+  config.vm.provider "virtualbox" do |vb|
+    vb.gui = false
+    vb.linked_clone = true # Saves space by sharing the base image
+    
+    # NETWORK FIXES FOR KUBERNETES:
+    # Forces a unique MAC address for every VM to avoid ID conflicts
+    vb.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
+    
+    # Sets the network card type to VirtIO (standard for modern Linux)
+    vb.customize ["modifyvm", :id, "--nictype1", "virtio"]
+    vb.customize ["modifyvm", :id, "--nictype2", "virtio"]
+
+    # Enables Promiscuous Mode so Pods can talk across nodes
+    vb.customize ["modifyvm", :id, "--nicpromisc2", "allow-all"]
+    
+    # Enables hardware acceleration
+    vb.customize ["modifyvm", :id, "--hwvirtex", "on"]
+  end
+
+  # --- 3. NODE DEFINITIONS ---
+
+  # NODE 1: MASTER
+  config.vm.define "node1-master" do |node|
+    node.vm.hostname = "node1-master.lab.com"
+    node.vm.network :private_network, ip: "10.96.0.101"
+    node.vm.provider "virtualbox" do |vb|
+      vb.memory = "4096"
+      vb.cpus = 2
+    end
+  end
+
+  # NODE 2: WORKER
+  config.vm.define "node2-worker" do |node|
+    node.vm.hostname = "node2-worker.lab.com"
+    node.vm.network :private_network, ip: "10.96.0.102"
+    node.vm.provider "virtualbox" do |vb|
+      vb.memory = "4096"
+      vb.cpus = 2
+    end
+  end
+
+  # NODE 3: WORKER
+  config.vm.define "node3-worker" do |node|
+    node.vm.hostname = "node3-worker.lab.com"
+    node.vm.network :private_network, ip: "10.96.0.103"
+    node.vm.provider "virtualbox" do |vb|
+      vb.memory = "4096"
+      vb.cpus = 2
+    end
+  end
+
+  # NODE 4: ANSIBLE (The Controller)
+  config.vm.define "ansible" do |node|
+    node.vm.hostname = "ansible.lab.com"
+    node.vm.network :private_network, ip: "10.96.0.104"
+    node.vm.provider "virtualbox" do |vb|
+      vb.memory = "1024"
+      vb.cpus = 1
+    end
+  end
+end
