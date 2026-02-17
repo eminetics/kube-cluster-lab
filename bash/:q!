@@ -1,0 +1,7 @@
+animals=( goat pig horse cow guinea pig )
+
+for animal in "${animals[@]}"
+do
+	echo "$animal"
+done
+
